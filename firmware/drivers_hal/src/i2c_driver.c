@@ -15,10 +15,10 @@ esp_err_t i2c_master_init(i2c_master_bus_handle_t *bus_handle) {
 
     esp_err_t err = i2c_new_master_bus(&i2c_bus_config, bus_handle);
     if (err != ESP_OK) {
-        ESP_LOGE(TAG, "Error inicializando nuevo bus I2C maestro");
+        ESP_LOGE(TAG, "Error inicializando bus I2C");
         return err;
     }
 
-    ESP_LOGI(TAG, "Bus I2C (API moderna v6.x) inicializado correctamente");
+    ESP_LOGI(TAG, "Bus I2C inicializado correctamente");
     return ESP_OK;
 }
