@@ -1,0 +1,17 @@
+{
+  "idf.currentSetup": "/home/jona/.espressif/v6.0.1/esp-idf",
+  "idf.openOcdConfigs": [
+    "board/esp32c6-builtin.cfg"
+  ],
+  "idf.customExtraVars": {
+    "IDF_TARGET": "esp32c6"
+  },
+  "clangd.path": "/home/jona/.espressif/tools/esp-clang/esp-20.1.1_20250829/esp-clang/bin/clangd",
+  "clangd.arguments": [
+    "--background-index",
+    "--query-driver=**",
+    "--compile-commands-dir=/run/media/jona/98F4D1E1F4D1C1A4/Mis_cosas_compartidas/espacioDesarrollo/vsc_workspace/Greppi_AyPSE_ESE/firmware/build"
+  ],
+  "idf.flashType": "UART",
+  "idf.port": "/dev/ttyUSB0"
+}

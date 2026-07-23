@@ -1,0 +1,6 @@
+[submodule "firmware/hardware/mlx90614"]
+	path = firmware/hardware/mlx90614
+	url = https://github.com/larryli/esp-idf_mlx90614.git
+[submodule "firmware/hardware/u8g2"]
+	path = firmware/hardware/u8g2
+	url = https://github.com/olikraus/u8g2.git
