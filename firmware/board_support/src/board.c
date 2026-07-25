@@ -122,13 +122,13 @@ esp_err_t board_init(void) {
 }
 
 float board_leer_temperatura(void) {
-    float temperatura_obj = 0.0;
+    float temperatura_amb = 0.0;
     if (mlx_handle == NULL) return -999.0;
-
-    esp_err_t err = mlx90614_get_to(mlx_handle, &temperatura_obj);
+    
+    esp_err_t err = mlx90614_get_ta(mlx_handle, &temperatura_amb);
     if (err != ESP_OK) return -999.0;
     
-    return temperatura_obj;
+    return temperatura_amb;
 }
 
 void board_mostrar_temperatura_oled(float temp) {

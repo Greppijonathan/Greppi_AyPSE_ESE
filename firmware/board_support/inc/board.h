@@ -9,10 +9,9 @@
 esp_err_t board_init(void);
 
 /**
- * @brief Lee la temperatura del objeto desde el sensor MLX90614
+ * @brief Lee la temperatura ambiente desde el sensor MLX90614
  */
 float board_leer_temperatura(void);
-
 /**
  * @brief Muestra la temperatura en la pantalla OLED 
  * @param temp Valor flotante de la temperatura a renderizar

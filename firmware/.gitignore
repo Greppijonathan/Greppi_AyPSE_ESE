@@ -1,0 +1,24 @@
+# ==========================================
+# Archivos y carpetas autogenerados (ESP-IDF)
+# ==========================================
+build/
+managed_components/
+
+# Archivos de configuración temporales
+sdkconfig.old
+sdkconfig.ci
+dependencies.lock
+
+# ==========================================
+# Archivos de entorno y editor (VS Code / IDEs)
+# ==========================================
+.vscode/
+.clangd/
+*.code-workspace
+
+# ==========================================
+# Archivos del Sistema Operativo
+# ==========================================
+.DS_Store
+Thumbs.db
+*.tmp
