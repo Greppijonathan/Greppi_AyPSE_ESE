@@ -1,50 +1,49 @@
-# Capa de Middleware
+# Capa de Aplicación
 
-La capa de Middleware provee servicios de infraestructura y comunicación estándar para la aplicación. En este proyecto, actúa como un puente para gestionar la conectividad a Internet a través de Wi-Fi y el envío de telemetría hacia la nube utilizando el protocolo MQTT.
+Esta es la capa superior de la arquitectura. Contiene la lógica de negocio del termostato IoT y es la encargada de coordinar las acciones de las capas inferiores sin interactuar directamente con el hardware ni con los registros del microcontrolador. 
 
-Al encapsular estas tecnologías, la lógica de negocio (capa de aplicación) no necesita conocer los detalles de la pila TCP/IP, el manejo de memoria flash o la gestión de sockets.
-
----
-
-## 🌐 Conectividad Wi-Fi
-
-El microcontrolador ESP32-C6 requiere la inicialización de varios subsistemas (como la memoria no volátil y la interfaz de red) antes de poder establecer un enlace inalámbrico.
-
-### `MID_Network_WiFi_Init()`
-
-**Firma:** `esp_err_t MID_Network_WiFi_Init(const char* ssid, const char* password)`
-
-Esta función orquesta el levantamiento completo de la pila de red y conecta el dispositivo a un punto de acceso (Router).
-
-**Flujo de ejecución:**
-1. **Inicialización de NVS (Non-Volatile Storage):** Levanta el sistema de archivos flash, el cual es un requisito obligatorio de los drivers de Wi-Fi de Espressif para guardar calibraciones de radiofrecuencia. Si la partición está corrupta o llena, la borra y la reinicializa.
-2. **Interfaz de Red:** Crea el bucle de eventos por defecto (`esp_event_loop_create_default`) y levanta la interfaz de red LwIP (`esp_netif_init`).
-3. **Modo Estación (STA):** Configura la radio Wi-Fi en modo cliente (Station), le inyecta las credenciales (SSID y Contraseña) pasadas por parámetro y ordena la conexión al punto de acceso.
+El flujo de ejecución está gobernado por **FreeRTOS**, implementando un diseño concurrente basado en tareas independientes que se comunican de forma segura mediante colas (*Queues*).
 
 ---
 
-## 📡 Protocolo MQTT
+## 🚀 Punto de Entrada (`app_main`)
 
-El envío de telemetría hacia el broker público (HiveMQ) se gestiona mediante el cliente MQTT nativo de ESP-IDF.
+La función principal del firmware tiene una única responsabilidad: inicializar los servicios en el orden correcto y delegar el control al RTOS.
 
-### `MID_MQTT_Init()`
+**Secuencia de inicialización:**
+1. **Hardware:** Llama a `board_init()` para levantar buses y periféricos. Si esta inicialización falla, el sistema aborta y detiene la ejecución.
+2. **Red Wi-Fi:** Llama al middleware para conectar el equipo a la red local usando las credenciales predefinidas.
+3. **Espera de Red:** Ejecuta un retardo bloqueante de 5 segundos para dar tiempo a que se asigne una IP (DHCP) antes de intentar conectar a la nube.
+4. **MQTT:** Inicializa el cliente MQTT hacia el broker público de HiveMQ.
+5. **IPC (Inter-Process Communication):** Crea una cola de FreeRTOS (`temp_queue`) con capacidad para 1 solo elemento de tipo flotante (`float`).
+6. **Lanzamiento de Tareas:** Crea y planifica las dos tareas principales del sistema.
 
-**Firma:** `esp_err_t MID_MQTT_Init(const char* broker_url)`
+---
 
-Inicializa el servicio de mensajería y establece la conexión persistente con el servidor en la nube.
+## 🔄 Arquitectura Concurrente (FreeRTOS)
 
-**Características:**
-* Recibe como parámetro la URL o IP del broker MQTT.
-* Construye el *handle* (`esp_mqtt_client_handle_t`) de forma global para mantener la sesión abierta.
-* Arranca la tarea en segundo plano del cliente MQTT para gestionar *ping-req*, *keep-alive* y reconexiones automáticas.
+El firmware utiliza un patrón **Productor - Consumidor** para separar las operaciones de hardware (rápidas y de tiempo real) de las operaciones de red (lentas o con latencia variable).
 
-### `MID_MQTT_Publish_Data()`
+### 1. Tarea Productora: `task_medir_y_oled`
+* **Prioridad:** 5 (Alta).
+* **Frecuencia:** Cada 2 segundos.
+* **Propósito:** Leer el sensor, mostrar el valor en la pantalla OLED de forma instantánea y enviar el dato a la cola de comunicación.
+* **Manejo de Cola:** Utiliza `xQueueOverwrite()`. Al ser una cola de un solo espacio, esta función garantiza que el dato más viejo se sobrescriba por el más nuevo si la tarea de red aún no lo procesó. Esto asegura que la pantalla local nunca se congele por culpa de una mala conexión a internet.
 
-**Firma:** `esp_err_t MID_MQTT_Publish_Data(const char* topic, float temp_ambiente)`
+### 2. Tarea Consumidora: `task_mqtt_publish`
+* **Prioridad:** 4 (Media).
+* **Frecuencia:** Espera de forma indefinida hasta recibir un dato, y luego aplica una cadencia de espera de 5 segundos tras publicar.
+* **Propósito:** Extraer la temperatura de la cola y publicarla en el tópico MQTT (`greppi/aypse/temp`) mediante la capa de Middleware.
+* **Manejo de Cola:** Utiliza `xQueueReceive()` con un retardo máximo (`portMAX_DELAY`). La tarea permanece "dormida" sin consumir tiempo de CPU hasta que la tarea productora inserta una nueva lectura en la cola.
 
-Toma el dato en crudo proveniente de la capa de Hardware, lo empaqueta y lo despacha a la nube.
+---
 
-**Características de la implementación:**
-* **Formateo JSON:** Envuelve el valor flotante de la temperatura dentro de un string con estructura JSON (`{"temp_ambiente": 24.50}`). Esto estandariza el payload para que cualquier plataforma de IoT o Dashboard lo pueda parsear fácilmente.
-* **Calidad de Servicio (QoS):** Utiliza QoS 1, lo que garantiza que el mensaje se entregue al menos una vez al broker, aumentando la fiabilidad de los reportes.
-* **Manejo de Seguridad:** Verifica que el cliente MQTT esté inicializado antes de intentar publicar, evitando desbordamientos de memoria o fallos fatales en el procesador.
+## 🔑 Credenciales y Configuración
+
+Los parámetros críticos de la aplicación se definen mediante macros al inicio del archivo, facilitando su modificación sin alterar la lógica de las tareas:
+
+| Macro | Valor | Descripción |
+| :--- | :--- | :--- |
+| `WIFI_SSID` | `"MI_RED_WIFI"` | Nombre de la red Wi-Fi local. |
+| `WIFI_PASS` | `"MI_CLAVE_WIFI"` | Contraseña de la red Wi-Fi. |
+| `MQTT_BROKER_URL` | `"mqtt://broker.hivemq.com"` | URL del servidor MQTT público. |

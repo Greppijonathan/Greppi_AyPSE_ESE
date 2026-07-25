@@ -6,15 +6,15 @@ Este proyecto consiste en la implementación de un termostato basado en un senso
 
 ## 📐 Enfoque de la arquitectura en capas
 
-A continuación se describe el modelo de capas implementado, desde el nivel más alto de abstracción hasta el más bajo:
+A continuación se describe el modelo de capas implementado, desde el nivel más alto de abstracción hasta el más bajo. El diseño garantiza un bajo acoplamiento aislando el hardware específico a través de una HAL.
 
-| Capa | Descripción | Archivos del proyecto |
-| :--- | :--- | :--- |
-| **apps** | Lógica de negocio y propósito principal del producto. No interactúa directamente con el hardware, usa las capas inferiores. | `main.c` |
-| **board_support** | En esta capa se incluye lo necesario para inicializar los periféricos del proyecto, acceder a la lectura de temperatura y actualización de la pantalla OLED. | `board.h`, `board.c` |
-| **middleware** | Software que actúa como puente y provee servicios estándar. En esta capa se incluye lo referido a red y MQTT. | `middleware.h`, `middleware.c` |
-| **drivers_hal** | Capa de Abstracción de Hardware. Aquí se incluye el manejo del protocolo I2C. | `i2c_master.h`, `i2c_master.c` |
-| **hardware** | En esta capa se implementaron las librerías para el manejo del sensor de temperatura y pantalla OLED. | `mlx90614.h`, `mlx90614.c`, `u8g2.h`, `u8g2.c` |
+| Capa | Descripción | Dependencias (Consume a) | Archivos del proyecto |
+| :--- | :--- | :--- | :--- |
+| **apps** | Lógica de negocio y propósito principal del producto. Coordina el flujo general. | `board_support`, `middleware` | `main.c` |
+| **board_support** | Inicializa los periféricos del proyecto, gestiona la lectura de temperatura y la actualización de la pantalla OLED. | `hardware`, `drivers_hal` | `board.h`, `board.c` |
+| **middleware** | Software que actúa como puente y provee servicios estándar. En esta capa se incluye lo referido a red y MQTT. | APIs de red (ESP-IDF) | `middleware.h`, `middleware.c` |
+| **hardware** | Implementación de los controladores (drivers instalados) específicos para el sensor MLX90614 y la pantalla OLED U8g2.Se modificaron las funciones para que realicen operaciones de W/R usando la capa drivers_hal. | `drivers_hal` | `mlx90614.h`, `mlx90614.c`, `u8g2.h`, `u8g2.c` |
+| **drivers_hal** | Capa de Abstracción de Hardware (HAL). Contiene la implementación genérica del protocolo I2C en español. | **Ninguna (Capa base)** | `i2c_driver.h`, `i2c_driver.c` |
 
 ---
 

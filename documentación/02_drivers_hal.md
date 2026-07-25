@@ -1,8 +1,8 @@
 # Capa de Drivers y HAL (Hardware Abstraction Layer)
 
-Esta capa tiene como objetivo abstraer la complejidad de los periféricos físicos del microcontrolador ESP32-C6. Al encapsular la inicialización del hardware nativo, las capas superiores (como el *Board Support*) pueden comunicarse con los buses de datos sin necesidad de interactuar con los registros internos o configuraciones de bajo nivel del chip.
+Esta capa tiene como objetivo abstraer la complejidad de los periféricos físicos del microcontrolador ESP32-C6. Al encapsular la inicialización y manipulación del hardware nativo, las capas superiores (como el *Board Support*) pueden comunicarse con los buses de datos sin necesidad de interactuar con los registros internos, configuraciones de bajo nivel o las APIs nativas de Espressif (ESP-IDF).
 
-En este proyecto, la capa HAL se encarga exclusivamente de configurar y levantar el bus **I2C Maestro** utilizando la nueva API de controladores nativos de ESP-IDF v6.
+En este proyecto, la capa HAL se encarga exclusivamente de configurar y gestionar el bus **I2C Maestro**, estandarizando todas las firmas de funciones al español para mantener consistencia en la arquitectura.
 
 ---
 
@@ -12,23 +12,31 @@ Para estandarizar la conexión con los dispositivos externos (sensor MLX90614 y 
 
 | Parámetro | Valor | Descripción |
 | :--- | :--- | :--- |
-| `I2C_MASTER_SDA_IO` | **6** | Pin GPIO asignado para la línea de datos (SDA). |
-| `I2C_MASTER_SCL_IO` | **7** | Pin GPIO asignado para la línea de reloj (SCL). |
-| `I2C_MASTER_FREQ_HZ`| **100000** | Frecuencia del reloj del bus (100 kHz - Modo Estándar). |
-| `I2C_MASTER_NUM` | **I2C_NUM_0** | Puerto de hardware interno del ESP32-C6 asignado a este bus. |
+| `I2C_MAESTRO_SDA_IO` | **6** | Pin GPIO asignado para la línea de datos (SDA). |
+| `I2C_MAESTRO_SCL_IO` | **7** | Pin GPIO asignado para la línea de reloj (SCL). |
+| `I2C_MAESTRO_FREQ_HZ`| **100000** | Frecuencia del reloj del bus (100 kHz - Modo Estándar). |
+| `I2C_MAESTRO_NUM` | **I2C_NUM_0** | Puerto de hardware interno del ESP32-C6 asignado a este bus. |
 
 ---
 
 ## 🛠️ API de la Capa HAL
 
-### `i2c_master_init()`
+A continuación se detallan las funciones expuestas por la HAL para el consumo por parte de la capa de Hardware y Soporte de Placa:
 
-**Firma:** `esp_err_t i2c_master_init(i2c_master_bus_handle_t *bus_handle)`
+### 1. Inicialización y Control
 
-Esta es la función principal de la capa HAL. Su propósito es inicializar el controlador I2C interno del ESP32-C6 y prepararlo para gestionar la comunicación. 
+| Función | Descripción |
+| :--- | :--- |
+| `i2c_driver_inicializar()` | Inicializa el controlador I2C interno, habilitando *pull-ups* internos y un filtro anti-ruido (`glitch_ignore_cnt = 7`). Retorna el *handle* del bus configurado. |
+| `i2c_driver_desinicializar()` | Libera los recursos de memoria y hardware asignados al bus I2C maestro. |
+| `i2c_driver_probar_dispositivo()` | Verifica si un dispositivo responde con un ACK en una dirección I2C específica. Útil para detectar la presencia física de la pantalla o el sensor durante el arranque. |
 
-**Características de la implementación:**
-* **Asignación de Pines:** Vincula físicamente los pines GPIO 6 y 7 a las señales SDA y SCL del bus cero.
-* **Pull-ups Internos:** Habilita las resistencias *pull-up* internas del microcontrolador (`enable_internal_pullup = true`), asegurando los estados lógicos altos del bus sin requerir hardware externo extra.
-* **Filtro Anti-ruido:** Implementa un filtro de transitorios (`glitch_ignore_cnt = 7`) para mejorar la robustez y estabilidad de la comunicación.
-* **Paso por Referencia:** Retorna el *handle* (manejador) del bus ya configurado a través del puntero `bus_handle`, permitiendo que las capas superiores puedan acoplar sus dispositivos a este mismo bus I2C.
+### 2. Operaciones de Transmisión de Datos
+
+Estas funciones abstraen el manejo temporal de los *device handles* de ESP-IDF, aislando a las capas superiores de esta complejidad.
+
+| Función | Descripción |
+| :--- | :--- |
+| `i2c_driver_escribir()` | Transmite un buffer de bytes directamente al dispositivo (sin registro explícito). Es utilizado de forma intensiva por la librería U8g2 para enviar comandos y datos de visualización. |
+| `i2c_driver_leer_registro()` | Escribe una dirección de sub-registro y luego lee los datos devueltos por el esclavo. Esencial para obtener las mediciones precisas del sensor MLX90614. |
+| `i2c_driver_escribir_registro()` | Escribe en un sub-registro específico de un dispositivo I2C, concatenando automáticamente el registro y los datos de manera transparente. |
