@@ -7,7 +7,7 @@ set(EXTRA_COMPONENT_DIRS
     "drivers_hal" 
     "hardware" 
     "middleware" 
-    "test_app"
+    #"test_app"
 )
 
 include($ENV{IDF_PATH}/tools/cmake/project.cmake)
