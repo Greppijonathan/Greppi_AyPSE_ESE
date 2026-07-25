@@ -27,3 +27,4 @@ Cada nivel de esta arquitectura cuenta con su propia documentación detallada ex
 3. [Capa de Soporte de Placa (Board Support)](./03_board_support.md)
 4. [Capa de Middleware](./04_middleware.md)
 5. [Capa de Aplicación](./05_apps.md)
+6. [test](./06_test_app.md)
