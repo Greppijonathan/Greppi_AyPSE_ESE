@@ -14,10 +14,10 @@
 #include "nvs_flash.h"
 
 /** @brief Nombre de la red Wi-Fi local. */
-#define WIFI_SSID       "***"
+#define WIFI_SSID       "Jona_2.4GHz"
 
 /** @brief Contraseña de la red Wi-Fi local. */
-#define WIFI_PASS       "***"
+#define WIFI_PASS       "35425773"
 
 /** @brief URL del servidor (broker) MQTT público. */
 #define MQTT_BROKER_URL "mqtt://broker.hivemq.com"
